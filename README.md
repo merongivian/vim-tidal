@@ -1,6 +1,6 @@
 # vim-tidal #
 
-A Vim/NeoVim plugin for [TidalCycles](http://tidal.lurk.org/), the language for
+A Vim/NeoVim plugin for [TidalCycles](http://tidalcycles.org), the language for
 live coding musical patterns written in Haskell.
 
 This plugin by default uses [tmux](https://tmux.github.io/), a known and loved
@@ -8,10 +8,12 @@ terminal multiplexer, for communicating with between Vim and the Tidal
 interpreter.  It was originally based on
 [vim-slime](https://github.com/jpalardy/vim-slime).
 
-**New**: If you are using NeoVim, you can now use the Terminal instead of tmux.
-Read the Configuration section on how to enable it.
-
 ![](http://i.imgur.com/frOLFFI.gif)
+
+If you are using Vim8 or NeoVim, you can use the native Terminal feature instead
+of tmux. Read the Configuration section on how to enable it.
+
+[![asciicast](https://asciinema.org/a/224891.svg)](https://asciinema.org/a/224891)
 
 ## Getting Started ##
 
@@ -35,7 +37,6 @@ Read the Configuration section on how to enable it.
    your Tidal interpreter.  If you already have SuperDirt or other synth running,
    you should hear a kick and a snare :)
 
-
 ## Install ##
 
 Make sure you have TidalCycles installed, with SuperDirt running. See [the Tidal wiki](https://tidalcycles.org/index.php/Userbase) for more information.
@@ -56,9 +57,8 @@ You can install it from the main repos:
 
 There seems to be [a Cygwin package for
 tmux](https://cygwin.com/cgi-bin2/package-cat.cgi?file=x86%2Ftmux%2Ftmux-1.9a-1&grep=tmux),
-but I haven't tested this plugin on Windows anyway, so you are on your own here.
+but at present it is [not working](https://github.com/microsoft/terminal/issues/5132#issuecomment-604560893) with any known terminal emulator for Windows. As such, this plugin has only been tested with the *Windows native* build of [Neovim](https://github.com/tidalcycles/vim-tidal#neovim-terminal-target).
 
-If you happen to make it work, let me know so I can update this section!
 
 ### Install plugin ###
 
@@ -80,13 +80,33 @@ Plug 'tidalcycles/vim-tidal'
   * Restart Vim and execute `:PlugInstall` to automatically download and
     install the plugins.
 
-Finally, go to the plugin repository and run `make install`:
+#### UNIX-based Systems ####
+
+If you are on a UNIX-based operating system (Linux distributions, MacOS, etc.), go to the plugin repository and run `make install`:
+
+(if you are using NeoVim and you won't run tmux then you don't need to run `make install` to be able to load the plugin inside NeoVim)
 
     $ cd ~/.vim/plugged/vim-tidal
     $ sudo make install
 
 This creates symlinks on `/usr/local/bin` for `tidal` and `tidalvim` scripts.
 You can remove them later if you want with `make uninstall`.
+
+#### Windows ####
+
+:warning: **This plugin has only been tested on Windows 10 using Neovim >0.5**
+
+If you are on Windows, add the `vim-tidal\bin` directory to your `PATH` user environment variable:
+
+    1. Click the `Start` button
+    2. Type "Edit the system environment variables" and hit `enter` or click on the search result
+    3. Click the button labeled `Environment variables...`
+    4. In the `User variables for [username]` table, click the entry for the `Path` variable, followed by the `Edit...` button beneath the same table
+    5. Click the `New` button in the following dialog, enter the *full path* to the `vim-tidal\bin` directory, and click `OK` until all the preceding dialogs are closed.
+
+Note: The full path to the `vim-tidal\bin` directory, will look something like `C:\Users\[username]\AppData\Local\nvim\plugged\vim-tidal\bin`, assuming you are using vim-plug as this document recommends.
+
+#### Final Installation Note ####
 
 Make sure to have the `filetype plugin on` setting on your .vimrc, otherwise
 plugin won't be loaded when opening a .tidal file.
@@ -103,7 +123,7 @@ First change your Plug line on your `.vimrc` to:
 Plug 'tidalcycles/vim-tidal', {'branch': 'tidal-0.9'}
 ```
 
-Then on Vim run `:PlugInstall` to update your plugin. 
+Then on Vim run `:PlugInstall` to update your plugin.
 
 
 ## Usage
@@ -167,7 +187,8 @@ These are some of the commands that can be run from Vim command line:
 
 * `:TidalHush`: Silences all streams by sending `hush`.
 
-* `:TidalGenerateCompletions {path}`: Generate dictionary for Dirt-Samples completion (path is optional)
+* `:TidalGenerateCompletions {path}`: Generate dictionary for Dirt-Samples
+  completion (path is optional).
 
 ### Default bindings
 
@@ -206,6 +227,34 @@ the lower pane.
 
 ## Configure ##
 
+### GHCI
+
+By default, `vim-tidal` uses the globally installed GHCI to launch the REPL.
+If you have installed Tidal through Stack (`stack install tidal`) or some other
+means, you can specify another command to use with `g:tidal_ghci`.
+
+For example, if one installed Tidal with Stack, they would use:
+
+```vim
+let g:tidal_ghci = "stack exec ghci --"
+```
+
+### Tidal Boot File
+
+A "Tidal boot file" is a file that may be used to initialise Tidal within GHCI.
+A custom boot file can be specified using the `g:tidal_boot` variable.
+
+In the case that `g:tidal_boot` is unspecified, vim-tidal will traverse parent
+directories until one of either `BootTidal.hs`, `Tidal.ghci` or `boot.tidal` are
+found.
+
+If no tidal boot file can be found by traversing parent directories, tidal will
+check the `g:tidal_boot_fallback` variable for a fallback boot file. This
+variable is useful for specifying a default user-wide tidal boot file on your
+system, while still allowing each tidal project to optionally use their own
+dedicated, local tidal boot file. By default, `g:tidal_boot_fallback` will point
+to the `Tidal.ghci` file provided with this plugin.
+
 ### Default bindings ###
 
 By default, there are two normal keybindings and one for visual blocks using
@@ -222,7 +271,39 @@ let g:tidal_no_mappings = 1
 See section Mappings on [ftplugin/tidal.vim](ftplugin/tidal.vim) and copy the
 bindings you like to your `.vimrc` file and modify them.
 
-### tmux target ###
+### Vim Terminal
+
+On both Vim (version 8 or above) and NeoVim, the default target in which we boot
+Tidal with GHCi is the native terminal.
+
+While it is the default, it can also be specified manually with the following:
+
+```vim
+let g:tidal_target = "terminal"
+```
+
+Open a file with a `.tidal` suffix, write and send a line of code to tidal, and
+the tidal terminal will open in a window below your editor.
+
+Use standard vim window navigation controls to focus the terminal (ie `<C-w> down/up`)
+
+You can learn more about the native Vim terminal here:
+
+https://vimhelp.org/terminal.txt.html
+
+### tmux (alternative to Vim terminal)
+
+Before Vim had native terminal support, this plugin provided a "tmux" target in
+order to allow for multiplexing the user's terminal via the 3rd party CLI tool.
+If you have `tmux` installed and you wish to use it instead of the native Vim
+terminal, you can enable this target with the following:
+
+```vim
+let g:tidal_target = "tmux"
+```
+
+This target will be enabled automatically in the case that the version of Vim in
+use does not have native terminal support.
 
 You can configure tmux socket name and target pane by typing `<localleader>c`
 or `:TidalConfig`.  This will prompt you first for the socket name, then for
@@ -245,25 +326,33 @@ on the window 1 and pane 0.  In that case you would need to add this line:
 let g:tidal_default_config = {"socket_name": "default", "target_pane": "omg:1.0"}
 ```
 
-### NeoVim Terminal target ###
+### Optional Supercollider Terminal
 
-If you are using NeoVim, you can ditch tmux and use the terminal. Add the
-following line on your configuration file:
+Vim-tidal provides an option for automatically running the supercollider
+command-line tool `sclang` alongside the Tidal GCHI terminal. By default this
+terminal is disabled, however it can be enabled with the following:
 
 ```vim
-let g:tidal_target = "terminal"
+let g:tidal_sc_enable = 1
 ```
 
-Open a file with a `.tidal` suffix, write and send a line of code to tidal, and the tidal terminal will open in a window below your editor.
+This can be useful to avoid the need to manually run sclang in a separate
+terminal or to open the supercollider IDE.
 
-Use standard vim window navigation controls to focus the terminal (ie `<C-w> down/up`)
+A custom supercollider boot file can be specified by assigning its path to the
+`g:tidal_sc_boot` variable.
 
-Quick overview of the terminal:
+In the case that `g:tidal_sc_boot` is unspecified, vim-tidal will traverse
+parent directories until one of either `boot.sc` or `boot.scd` are found.
 
-1. The terminal defaults to insert mode.
-2. Enter terminal insert mode using eg. `i`.
-3. Exit terminal insert mode with `<C-\><C-n>`.
-4. You'll probably want to apply the `<A-k>` mappings mentioned in `:help terminal`.
+If no supercollider boot file can be found by traversing parent directories,
+tidal will check the `g:tidal_sc_boot_fallback` variable for a fallback boot
+file. This variable is useful for specifying a default user-wide supercollider
+boot file on your system, while still allowing each tidal project to optionally
+use their own dedicated, local supercollider boot file.
+
+By default, `g:tidal_sc_boot_fallback` will point to the `boot.sc` file provided
+with this plugin which simply starts SuperDirt with the default settings.
 
 ### Miscellaneous ###
 
